@@ -1,1 +1,2 @@
 # Pinterest Data Processing Pipeline
+> A project to build a data processing pipeline for Pinterest data. One that is extensible, can process and store large amounts of data and the ability to compute accurate metrics using both historical and recent data. Built using kafka, with both batch and real-time streaming pipelines using Spark which are joined at the end.
