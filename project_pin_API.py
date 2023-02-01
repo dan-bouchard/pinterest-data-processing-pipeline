@@ -21,10 +21,14 @@ class Data(BaseModel):
     downloaded: int
     save_location: str
 
+producer = KafkaProducer(bootstrap_servers='localhost:9092',
+                            value_serializer=lambda v: dumps(v).encode('utf-8'))
+
 
 @app.post("/pin/")
 def get_db_row(item: Data):
     data = dict(item)
+    producer.send('PinterestPipelineTopic',value=data)
     return item
 
 
