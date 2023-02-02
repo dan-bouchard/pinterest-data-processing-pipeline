@@ -28,3 +28,7 @@ A consumer can be setup with the line in the terminal:
 `bin/kafka-console-consumer.sh --topic PinterestPipelineTopic --from-beginning --bootstrap-server localhost:9092`
 
 > The user posting emulation can be run by starting the `user_posting_emulation.py` script which posts to the fastAPI /pin/ method. 
+
+### Kafka Producer and Consumer via kafka-python
+
+Setting up scripts `batch_consumer.py` and `streaming_consumer.py`, the `user_posting_emulation.py` script can show that the data is being produced via the API and consumed in both a batch and streaming manner at the same time.
