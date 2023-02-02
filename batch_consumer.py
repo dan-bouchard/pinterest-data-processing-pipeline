@@ -25,10 +25,10 @@ def consume_batch_messages(batch_size=300):
         # print(message.timestamp)
         
         # if batch is big enough break
-        if len(batch_messages) > batch_size:
+        if len(batch_messages) >= batch_size:
             print(batch_messages)
-            break
+            batch_messages = []
 
 if __name__ == '__main__':
     print('Running Batch Consumer')
-    consume_batch_messages(batch_size=3)
+    consume_batch_messages(batch_size=10)
