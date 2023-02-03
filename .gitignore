@@ -4,3 +4,4 @@ __pycache__/
 *$py.class
 
 user_posting_emulation.py
+PinterestData*.json
