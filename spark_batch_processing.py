@@ -2,7 +2,7 @@ import os
 import json
 from pyspark.sql import SparkSession
 from pyspark import SparkContext, SparkConf
-from pyspark.sql.types import BooleanType, ShortType, IntegerType
+from pyspark.sql.types import BooleanType, ShortType, IntegerType, ByteType
 from pyspark.sql import functions as F
 
 # Adding the packages required to get data from S3  
@@ -59,11 +59,32 @@ def clean_dataframe_in_spark(df):
     df2.show()
     return df2
 
+def generate_summary_statistics(df):
+
+    df1 = df.withColumn('is_image', df.is_image_or_video.contains('image').cast(ByteType()))
+    df2 = (df1
+        .groupBy('category')
+        .agg(F.count('description').alias('number_of_records'),
+            F.avg('follower_count').alias('average_follower_count'),
+            F.sum('is_image').alias('number_of_images'))
+    )
+
+    (df2
+        .withColumn('number_of_videos', df2.number_of_records - df2.number_of_images)
+        .sort('category')
+        .show()
+    )
+
 if __name__ == '__main__':
     print('Setting up Spark connection')
     spark = setup_spark_aws_connection()
+    
     print('Displaying a Spark dataframe')
     filename = 'PinterestData_0'
     df = read_from_s3_bucket(spark, filename)
+    
     print('Displaying cleaned Spark dataframe')
     cleaned_df = clean_dataframe_in_spark(df)
+    
+    print('Displaying Summary Statistics')
+    generate_summary_statistics(cleaned_df)
