@@ -35,40 +35,48 @@ def setup_spark_aws_connection():
 def read_from_s3_bucket(spark_obj, filename):
     # Read from the S3 bucket
     df = spark_obj.read.json(f's3a://pinterest-data-b8070821-f9b8-4a20-872f-212f94d56365/{filename}.json')
+    # show in terminal
     df.show()
     return df
 
 def clean_dataframe_in_spark(df):
+    # Cleans the Spark dataframe into a more usable format 
     df1 = (df
-        .replace('multi-video(story page format)', 'video', 'is_image_or_video')
-        .replace('No Title Data Available', None, 'title')
-        .replace('No description available Story format', None, 'description')
-        .replace('N,o, ,T,a,g,s, ,A,v,a,i,l,a,b,l,e', None, 'tag_list')
-        .replace('Image src error.', None, 'image_src')
-        .replace('User Info Error', None, 'follower_count')
-        .withColumn('downloaded', df.downloaded.cast(BooleanType()))
-        .withColumn('index', df.index.cast(ShortType()))
-        .withColumn('tag_list', F.split(F.col('tag_list'), ','))
-        .withColumn('follower_count', F.regexp_replace('follower_count', 'k', '000'))
-        .withColumn('follower_count', F.regexp_replace('follower_count', 'M', '000000'))
+        .replace('multi-video(story page format)', 'video', 'is_image_or_video') # changes all fields to image/video
+        .replace('No Title Data Available', None, 'title') # removes null fields
+        .replace('No description available Story format', None, 'description') # removes null fields
+        .replace('N,o, ,T,a,g,s, ,A,v,a,i,l,a,b,l,e', None, 'tag_list') # removes null fields
+        .replace('Image src error.', None, 'image_src') # removes null fields
+        .replace('User Info Error', None, 'follower_count') # removes null fields
+        .withColumn('downloaded', df.downloaded.cast(BooleanType())) # casts downloaded to a boolean
+        .withColumn('index', df.index.cast(ShortType())) # casts index to an int
+        .withColumn('tag_list', F.split(F.col('tag_list'), ',')) # splits up tag_list into an array
+        .withColumn('follower_count', F.regexp_replace('follower_count', 'k', '000')) # replace 1000's suffix
+        .withColumn('follower_count', F.regexp_replace('follower_count', 'M', '000000')) # replace 1,000,000's suffix
     )
 
     df2 = (df1
-        .withColumn('follower_count', df1.follower_count.cast(IntegerType()))
+        .withColumn('follower_count', df1.follower_count.cast(IntegerType())) # casts follower_count to an int
     )
+    # show in terminal
     df2.show()
     return df2
 
 def generate_summary_statistics(df):
+    # Generate groupby summary statistics from cleaned spark datafram
 
+    # generate new column is_image
     df1 = df.withColumn('is_image', df.is_image_or_video.contains('image').cast(ByteType()))
+    
+    # generate groupby and summary stats
     df2 = (df1
         .groupBy('category')
         .agg(F.count('description').alias('number_of_records'),
             F.avg('follower_count').alias('average_follower_count'),
             F.sum('is_image').alias('number_of_images'))
     )
-
+    
+    # add an additional column and show in terminal
     (df2
         .withColumn('number_of_videos', df2.number_of_records - df2.number_of_images)
         .sort('category')
