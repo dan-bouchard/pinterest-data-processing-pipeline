@@ -38,3 +38,5 @@ Setting up scripts `batch_consumer.py` and `streaming_consumer.py`, the emulatio
 The `batch_consumer` stores a batch of data and will periodically upload it to a S3 bucket data lake for long-term persistent storage. The data is saved as JSON files. This data can be processed later down the line when retrieved from storage.
 
 The `spark_batch_processing.py` file sets up a SparkSession and loads the JSON file(s) from the S3 bucket into a Spark dataframe. From this, the data can be cleaned and processed accordingly, all within Spark.
+
+This batch processing will be run once daily using an Airflow DAG to orchestrate the job.
