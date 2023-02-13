@@ -3,10 +3,8 @@ from kafka import KafkaConsumer
 from json import loads
 from pyspark.sql import SparkSession
 from pyspark import SparkConf
-from pyspark.streaming import StreamingContext
 import pyspark.sql.functions as F
-from pyspark.sql.window import Window
-from pyspark.sql.types import StructType, StructField, StringType, LongType, DoubleType, IntegerType, ArrayType, BooleanType, ShortType, ByteType
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType, BooleanType, ShortType, ByteType
 
 # Download spark sql kakfa package from Maven repository and submit to PySpark at runtime. 
 # os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.2.3 streaming_consumer.py pyspark-shell'
