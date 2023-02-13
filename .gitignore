@@ -5,4 +5,4 @@ __pycache__/
 
 user_posting_emulation.py
 PinterestData*.json
-aws_access_key.json
+password.py

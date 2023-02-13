@@ -5,10 +5,10 @@ from pyspark.sql import SparkSession
 from pyspark import SparkConf
 import pyspark.sql.functions as F
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, BooleanType, ShortType, ByteType
+from password import postgres_user, postgres_password
 
 # Download spark sql kakfa package from Maven repository and submit to PySpark at runtime. 
-# os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.2.3 streaming_consumer.py pyspark-shell'
-os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.2.3 pyspark-shell'
+os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.2.3,org.postgresql:postgresql:42.4.0 pyspark-shell'
 # specify the topic we want to stream data from.
 kafka_topic_name = 'PinterestPipelineTopic'
 # Specify your Kafka server to read data from.
@@ -69,25 +69,66 @@ def consume_data_to_spark_streaming():
         .withColumnRenamed('count(index)', 'total_items')
         .withColumn('avg_follower_count', F.round(F.col('avg_follower_count'), 0))
         .withColumn('percentage_of_images', F.round(F.col('percentage_of_images') * 100.0, 2) )
-        .orderBy(F.col('window.start'))
-    )
-    #outputting the messages to the console 
-    (windowed_counts
+        #.orderBy(F.col('window.start'))
+    ).selectExpr('window.start', 'percentage_of_images', 'total_items', 'avg_follower_count').withColumnRenamed('start', 'window_start')
+
+    return windowed_counts
+
+# function to send data to postgres database
+def write_spark_messages_to_db(df):         
+
+    def foreach_batch_function(df, epoch_id):
+        (df.write
+            .mode('append')
+            .format('jdbc')
+            .option('url', f'jdbc:postgresql://localhost:5432/spark_streaming')
+            .option('driver', 'org.postgresql.Driver')
+            .option('dbtable', 'pinterest_data')
+            .option('user', postgres_user)
+            .option('password', postgres_password)
+            .save()
+        )
+    (df
         .writeStream
-        .format('console')
-        .outputMode('complete')
-        .option('truncate', 'false')
+        .foreachBatch(foreach_batch_function)
+        .outputMode('update')
         .start()
         .awaitTermination()
     )
 
-    # (cleaned_df
-    #     .writeStream
-    #     .format('console')
-    #     .outputMode('append')
-    #     .start()
-    #     .awaitTermination()
-    # )
+    # (df.write
+    #         .mode('overwrite')
+    #         # .output('complete')
+    #         .format('jdbc')
+    #         .option('url', f'jdbc:postgresql://localhost:5432/spark_streaming')
+    #         .option('driver', 'org.postgresql.Driver')
+    #         .option('dbtable', 'pinterest_data')
+    #         .option('user', postgres_user)
+    #         .option('password', postgres_password)
+    #         .save()
+    #     )
+
+def write_spark_messages_to_console(df, output_mode='complete'):
+
+    if output_mode == 'complete':
+    #outputting the messages to the console 
+        (df
+            .writeStream
+            .format('console')
+            .outputMode('complete')
+            .option('truncate', 'false')
+            .start()
+            .awaitTermination()
+        )
+    elif output_mode == 'append':
+
+        (df
+            .writeStream
+            .format('console')
+            .outputMode('append')
+            .start()
+            .awaitTermination()
+        )
 
 def clean_dataframe(df):
     df1 = (df
@@ -124,5 +165,7 @@ def consume_streaming_messages():
 if __name__ == '__main__':
     print('Running Streaming Consumer')
     # consume_streaming_messages()
-    consume_data_to_spark_streaming()
+    df = consume_data_to_spark_streaming()
+    # write_spark_messages_to_console(df)
+    write_spark_messages_to_db(df)
 
